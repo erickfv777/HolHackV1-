@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>HOL HACK PRO</title>
+    <style>
+        :root {
+            --vermelho: #a62a2a;
+            --verde: #16a34a;
+            --amarelo: #d1a10a;
+            --bg-transparente: rgba(0, 0, 0, 0.6);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000 url('background.png') no-repeat center top;
+            background-size: cover;
+            background-attachment: fixed;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Container principal posicionado estrategicamente */
+        #main-app {
+            margin-top: 55vh; /* Ajuste para ficar abaixo da sua linha vermelha */
+            width: 90%;
+            max-width: 380px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        /* Visor de Probabilidades */
+        .visor {
+            background: var(--bg-transparente);
+            backdrop-filter: blur(5px); /* Efeito de vidro */
+            border: 1px solid #333;
+            border-radius: 12px;
+            padding: 12px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+
+        #resultado { font-size: 13px; color: #ccc; text-transform: uppercase; }
+        #recomendado { 
+            font-size: 20px; 
+            color: yellow; 
+            font-weight: 900; 
+            margin-top: 8px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+
+        /* Grid de Números */
+        .grid-numeros {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+        }
+
+        .btn-num {
+            background: rgba(166, 42, 42, 0.4); /* Vermelho transparente */
+            border: 1px solid rgba(255,255,255,0.1);
+            color: white;
+            padding: 12px 0;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px;
+            transition: 0.2s;
+        }
+
+        .btn-num:active { background: var(--vermelho); transform: scale(0.95); }
+
+        /* Controles Ganhei/Perdi */
+        .controles {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-acao {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            text-transform: uppercase;
+        }
+
+        .ganhei { background: rgba(22, 163, 74, 0.5); border: 1px solid var(--verde); }
+        .perdi { background: rgba(220, 38, 38, 0.5); border: 1px solid var(--vermelho); }
+
+        /* Rodapé com Stats e Botões */
+        .footer {
+            background: var(--bg-transparente);
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .stats-line { color: #aaa; margin-bottom: 8px; font-weight: bold; }
+        
+        .botoes-arquivo {
+            display: flex;
+            gap: 5px;
+        }
+
+        .btn-secundario {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            border-radius: 5px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .btn-save { background: var(--amarelo); color: black; }
+        .btn-reload { background: #3b82f6; color: white; }
+        .btn-reset { background: #444; color: white; }
+
+    </style>
+</head>
+<body>
+
+<div id="main-app">
+    <div class="visor">
+        <div id="resultado">Escolha a carta que saiu</div>
+        <div id="recomendado">RECOMENDADO: ---</div>
+    </div>
+
+    <div class="grid-numeros" id="grid">
+        </div>
+
+    <div class="controles">
+        <button class="btn-acao ganhei" onclick="registrar(true)">GANHEI</button>
+        <button class="btn-acao perdi" onclick="registrar(false)">PERDI</button>
+    </div>
+
+    <div class="footer">
+        <div class="stats-line" id="txt-stats">J: 0 | V: 0 | 0%</div>
+        <div class="stats-line" id="txt-restantes" style="color: #666;">RESTANTES: 260</div>
+        
+        <div class="botoes-arquivo">
+            <button class="btn-secundario btn-save" onclick="salvar()">Salvar</button>
+            <button class="btn-secundario btn-reload" onclick="carregar()">Reload</button>
+            <button class="btn-secundario btn-reset" onclick="resetar()">Reset</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let deck = [];
+    let historico = [];
+    let acertos = 0;
+    let jogadas = 0;
+
+    function criarBaralho() {
+        deck = [];
+        for (let i = 1; i <= 13; i++) {
+            for (let j = 0; j < 20; j++) deck.push(i);
+        }
+        atualizarTela();
+    }
+
+    function calcular(carta) {
+        const idx = deck.indexOf(carta);
+        if (idx > -1) deck.splice(idx, 1);
+
+        const total = deck.length;
+        const h = ((deck.filter(c => c > carta).length / total) * 100).toFixed(1);
+        const l = ((deck.filter(c => c < carta).length / total) * 100).toFixed(1);
+        const s = ((deck.filter(c => c === carta).length / total) * 100).toFixed(1);
+
+        document.getElementById('resultado').innerText = `CARTA: ${carta} | H: ${h}% L: ${l}% S: ${s}%`;
+        
+        const rec = h > l ? "HIGH ↑" : l > h ? "LOW ↓" : "SAME / ?";
+        const elRec = document.getElementById('recomendado');
+        elRec.innerText = `RECOMENDADO: ${rec}`;
+        elRec.style.color = h > l ? "#4ade80" : l > h ? "#f87171" : "yellow";
+        
+        historico.push(carta);
+        atualizarTela();
+    }
+
+    function registrar(vitoria) {
+        jogadas++;
+        if (vitoria) acertos++;
+        atualizarTela();
+    }
+
+    function atualizarTela() {
+        const taxa = jogadas > 0 ? ((acertos/jogadas)*100).toFixed(1) : 0;
+        document.getElementById('txt-stats').innerText = `JOGADAS: ${jogadas} | VITÓRIAS: ${acertos} | ${taxa}%`;
+        document.getElementById('txt-restantes').innerText = `RESTANTES NO BARALHO: ${deck.length}`;
+    }
+
+    function salvar() {
+        const data = { jogadas, acertos, historico };
+        localStorage.setItem('holHackData', JSON.stringify(data));
+        alert("Progresso salvo!");
+    }
+
+    function carregar() {
+        const data = JSON.parse(localStorage.getItem('holHackData'));
+        if (data) {
+            jogadas = data.jogadas;
+            acertos = data.acertos;
+            historico = data.historico;
+            criarBaralho();
+            historico.forEach(c => {
+                const idx = deck.indexOf(c);
+                if (idx > -1) deck.splice(idx, 1);
+            });
+            atualizarTela();
+            alert("Dados carregados!");
+        }
+    }
+
+    function resetar() {
+        if(confirm("Deseja apagar tudo?")) {
+            localStorage.removeItem('holHackData');
+            location.reload();
+        }
+    }
+
+    // Gerar Botões
+    const grid = document.getElementById('grid');
+    for (let i = 1; i <= 13; i++) {
+        const b = document.createElement('button');
+        b.className = 'btn-num';
+        b.innerText = i;
+        b.onclick = () => calcular(i);
+        grid.appendChild(b);
+    }
+
+    criarBaralho();
+</script>
+</body>
+</html>
